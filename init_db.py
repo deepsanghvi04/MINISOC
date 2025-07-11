@@ -1,35 +1,59 @@
 import sqlite3
+import hashlib
+from datetime import datetime
+import random
 
-# Connect to a new database file (it will create it)
 conn = sqlite3.connect('logs.db')
 c = conn.cursor()
 
-# Create a logs table
+# Users table
 c.execute('''
-CREATE TABLE logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    timestamp TEXT,
-    src_ip TEXT,
-    dst_ip TEXT,
-    port INTEGER,
-    protocol TEXT,
-    action TEXT
-)
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY,
+        username TEXT UNIQUE,
+        password TEXT,
+        role TEXT
+    )
 ''')
 
-# Insert some dummy data
-dummy_logs = [
-    ("2025-07-10 08:00", "192.168.1.10", "8.8.8.8", 53, "UDP", "allow"),
-    ("2025-07-10 08:05", "192.168.1.12", "185.199.108.153", 443, "TCP", "allow"),
-    ("2025-07-10 08:10", "192.168.1.11", "145.100.179.217", 6666, "TCP", "deny"),
-    ("2025-07-10 08:15", "192.168.1.14", "10.10.10.10", 22, "TCP", "allow")
-]
+# Logs table
+c.execute('''
+    CREATE TABLE IF NOT EXISTS logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp TEXT,
+        src_ip TEXT,
+        dest_ip TEXT,
+        port INTEGER,
+        protocol TEXT,
+        action TEXT
+    )
+''')
 
-c.executemany('''
-INSERT INTO logs (timestamp, src_ip, dst_ip, port, protocol, action)
-VALUES (?, ?, ?, ?, ?, ?)
-''', dummy_logs)
+# Add users (admin and analyst)
+users = [
+    ('admin', hashlib.sha256('admin123'.encode()).hexdigest(), 'admin'),
+    ('analyst', hashlib.sha256('analyst123'.encode()).hexdigest(), 'analyst')
+]
+for user in users:
+    try:
+        c.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", user)
+    except sqlite3.IntegrityError:
+        pass
+
+# Add sample logs
+sample_logs = []
+for _ in range(30):
+    sample_logs.append((
+        datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        f"192.168.1.{random.randint(2,254)}",
+        f"10.0.0.{random.randint(2,254)}",
+        random.choice([80, 443, 23, 3389, 445]),
+        random.choice(["TCP", "UDP"]),
+        random.choice(["allow", "deny"])
+    ))
+
+c.executemany("INSERT INTO logs (timestamp, src_ip, dest_ip, port, protocol, action) VALUES (?, ?, ?, ?, ?, ?)", sample_logs)
 
 conn.commit()
 conn.close()
-print("Database created and dummy logs inserted.")
+print("✅ Database initialized successfully.")
