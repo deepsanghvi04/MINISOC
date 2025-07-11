@@ -2,19 +2,84 @@
 <html>
 <head>
     <title>MiniSOC Dashboard</title>
-    <style>
-        table, th, td {
-            border: 1px solid black;
-            padding: 6px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-    </style>
+    <meta http-equiv="refresh" content="5">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+
     <h1>MiniSOC Log Dashboard</h1>
+
+    <p style="text-align:center;">
+        👤 Logged in as: <b>{{ session.get('username') }}</b> ({{ session.get('role') }})
+        <a href="/logout"><button>🔒 Logout</button></a>
+    </p>
+
+    <!-- Export Logs (Admin only) -->
+    {% if session.get('role') == 'admin' %}
+    <div style="text-align:center; margin-bottom: 10px;">
+        <a href="/download_csv"><button>📁 Export Logs to CSV</button></a>
+    </div>
+    {% endif %}
+
+    <!-- Filter Form (Admin only) -->
+    {% if session.get('role') == 'admin' %}
+    <form method="GET" action="/" style="text-align:center;">
+        <label>Source IP:</label>
+        <input type="text" name="src_ip" placeholder="e.g. 192.168.1.10">
+
+        <label>Action:</label>
+        <select name="action">
+            <option value="">--All--</option>
+            <option value="allow">Allow</option>
+            <option value="deny">Deny</option>
+        </select>
+
+        <label>Protocol:</label>
+        <select name="protocol">
+            <option value="">--All--</option>
+            <option value="TCP">TCP</option>
+            <option value="UDP">UDP</option>
+        </select>
+
+        <button type="submit">Filter</button>
+    </form>
+    {% else %}
+    <p style="text-align:center; color:gray;">
+        🔒 Analyst mode: Viewing only suspicious (deny) logs
+    </p>
+    {% endif %}
+
+    <!-- Pie Chart (Admin only) -->
+    {% if session.get('role') == 'admin' %}
+    <div style="display:flex; justify-content:center; margin-top:20px;">
+        <canvas id="actionChart" width="300" height="300"></canvas>
+    </div>
+    <script>
+        const ctx = document.getElementById('actionChart').getContext('2d');
+        const actionChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['Allow', 'Deny'],
+                datasets: [{
+                    data: [{{ allow_count }}, {{ deny_count }}],
+                    backgroundColor: ['#27ae60', '#e74c3c'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    </script>
+    {% endif %}
+
+    <!-- Logs Table -->
     <table>
         <thead>
             <tr>
@@ -28,16 +93,27 @@
         </thead>
         <tbody>
             {% for log in logs %}
-            <tr>
+            <tr class="{% if log[6].lower() == 'deny' or log[4] in [23, 445, 3389] %}danger-log{% endif %}">
                 <td>{{ log[1] }}</td>
                 <td>{{ log[2] }}</td>
                 <td>{{ log[3] }}</td>
                 <td>{{ log[4] }}</td>
                 <td>{{ log[5] }}</td>
-                <td>{{ log[6] }}</td>
+                <td class="{{ log[6] | lower }}">{{ log[6] }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+
+    <!-- Alert for latest suspicious log -->
+    <script>
+        {% if logs %}
+            {% set latest = logs[0] %}
+            {% if latest[6].lower() == 'deny' or latest[4] in [23, 445, 3389] %}
+                alert("⚠️ Suspicious Activity Detected!\nSource: {{ latest[2] }}\nPort: {{ latest[4] }}\nAction: {{ latest[6] }}");
+            {% endif %}
+        {% endif %}
+    </script>
+
 </body>
 </html>
