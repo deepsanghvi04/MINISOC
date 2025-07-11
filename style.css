@@ -1,0 +1,64 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background-color: #f7f9fb;
+    color: #333;
+}
+
+h1 {
+    text-align: center;
+    color: #2c3e50;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+table, th, td {
+    border: 1px solid #ccc;
+    padding: 8px;
+}
+
+th {
+    background-color: #2c3e50;
+    color: white;
+}
+
+.allow {
+    color: green;
+    font-weight: bold;
+}
+
+.deny {
+    color: red;
+    font-weight: bold;
+}
+
+.danger-log {
+    background-color: #ffe6e6;
+    color: #900;
+    font-weight: bold;
+    animation: flash 1s infinite alternate;
+}
+
+@keyframes flash {
+    from { background-color: #ffe6e6; }
+    to { background-color: #fff5f5; }
+}
+
+button {
+    padding: 8px 12px;
+    margin: 5px;
+    font-weight: bold;
+    border: none;
+    background-color: #3498db;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #2980b9;
+}
